@@ -1,41 +1,18 @@
 use logos::Logos;
-use num_derive::{FromPrimitive, ToPrimitive};
+use std::fmt;
 
-pub(crate) struct Lexer<'a> {
-    inner: logos::Lexer<'a, SyntaxKind>,
-}
-
-impl<'a> Lexer<'a> {
-    pub(crate) fn new(input: &'a str) -> Self {
-        Self {
-            inner: SyntaxKind::lexer(input),
-        }
-    }
-}
-
-impl<'a> Iterator for Lexer<'a> {
-    type Item = (SyntaxKind, &'a str);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let kind = self.inner.next()?;
-        let text = self.inner.slice();
-
-        Some((kind, text))
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Logos, FromPrimitive, ToPrimitive)]
-pub(crate) enum SyntaxKind {
-    #[regex(" +")]
+#[derive(Debug, Copy, Clone, PartialEq, Logos)]
+pub enum TokenKind {
+    #[regex("[ \n]+")]
     Whitespace,
 
     #[token("fn")]
     FnKw,
 
-    #[token("let")]
+    #[token("$")]
     LetKw,
 
-    #[regex("[A-Za-z][A-Za-z0-9]+")]
+    #[regex("[A-Za-z][A-Za-z0-9]*")]
     Ident,
 
     #[regex("[0-9]+")]
@@ -56,95 +33,156 @@ pub(crate) enum SyntaxKind {
     #[token("=")]
     Equals,
 
+    #[token("(")]
+    LParen,
+
+    #[token(")")]
+    RParen,
+
     #[token("{")]
     LBrace,
 
     #[token("}")]
     RBrace,
 
+    #[regex("#.*")]
+    Comment,
+
     #[error]
     Error,
+}
 
-    Root,
-    BinOp,
+impl TokenKind {
+    pub fn is_trivia(self) -> bool {
+        matches!(self, Self::Whitespace | Self::Comment)
+    }
+}
+
+impl fmt::Display for TokenKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Whitespace => "whitespace",
+            Self::FnKw => "‘fn’",
+            Self::LetKw => "$",
+            Self::Ident => "identifier",
+            Self::Number => "number",
+            Self::Plus => "‘+’",
+            Self::Minus => "‘-’",
+            Self::Star => "‘*’",
+            Self::Slash => "‘/’",
+            Self::Equals => "‘=’",
+            Self::LParen => "‘(’",
+            Self::RParen => "‘)’",
+            Self::LBrace => "‘{’",
+            Self::RBrace => "‘}’",
+            Self::Comment => "comment",
+            Self::Error => "an unrecognized token",
+        })
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use logos::Lexer;
 
-    fn check(input: &str, kind: SyntaxKind) {
+    use super::*;
+    use crate::lexer;
+
+    fn check(input: &str, kind: TokenKind) {
         let mut lexer = Lexer::new(input);
-        assert_eq!(lexer.next(), Some((kind, input)));
+
+        let token = lexer.next().unwrap();
+        assert_eq!(token.kind, kind);
+        assert_eq!(token.text, input);
     }
 
     #[test]
-    fn lex_spaces() {
-        check("   ", SyntaxKind::Whitespace);
+    fn lex_spaces_and_newlines() {
+        check("  \n ", TokenKind::Whitespace);
     }
 
     #[test]
     fn lex_fn_keyword() {
-        check("fn", SyntaxKind::FnKw);
+        check("fn", TokenKind::FnKw);
     }
 
     #[test]
     fn lex_let_keyword() {
-        check("let", SyntaxKind::LetKw);
+        check("let", TokenKind::LetKw);
     }
 
     #[test]
     fn lex_alphabetic_identifier() {
-        check("abcd", SyntaxKind::Ident);
+        check("abcd", TokenKind::Ident);
     }
 
     #[test]
     fn lex_alphanumeric_identifier() {
-        check("ab123cde456", SyntaxKind::Ident);
+        check("ab123cde456", TokenKind::Ident);
     }
 
     #[test]
     fn lex_mixed_case_identifier() {
-        check("ABCdef", SyntaxKind::Ident);
+        check("ABCdef", TokenKind::Ident);
+    }
+
+    #[test]
+    fn lex_single_char_identifier() {
+        check("x", TokenKind::Ident);
     }
 
     #[test]
     fn lex_number() {
-        check("123456", SyntaxKind::Number);
+        check("123456", TokenKind::Number);
     }
 
     #[test]
     fn lex_plus() {
-        check("+", SyntaxKind::Plus);
+        check("+", TokenKind::Plus);
     }
 
     #[test]
     fn lex_minus() {
-        check("-", SyntaxKind::Minus);
+        check("-", TokenKind::Minus);
     }
 
     #[test]
     fn lex_star() {
-        check("*", SyntaxKind::Star);
+        check("*", TokenKind::Star);
     }
 
     #[test]
     fn lex_slash() {
-        check("/", SyntaxKind::Slash);
+        check("/", TokenKind::Slash);
     }
 
     #[test]
     fn lex_equals() {
-        check("=", SyntaxKind::Equals);
+        check("=", TokenKind::Equals);
+    }
+
+    #[test]
+    fn lex_left_parenthesis() {
+        check("(", TokenKind::LParen);
+    }
+
+    #[test]
+    fn lex_right_parenthesis() {
+        check(")", TokenKind::RParen);
     }
 
     #[test]
     fn lex_left_brace() {
-        check("{", SyntaxKind::LBrace);
+        check("{", TokenKind::LBrace);
     }
 
     #[test]
     fn lex_right_brace() {
-        check("}", SyntaxKind::RBrace);
+        check("}", TokenKind::RBrace);
+    }
+
+    #[test]
+    fn lex_comment() {
+        check("# foo", TokenKind::Comment);
     }
 }

@@ -1,10 +1,10 @@
-mod expr;
-
-use crate::lexer::{Lexer, SyntaxKind};
+use crate::lexer::{TokenKind};
 use crate::syntax::{GlueShellLanguage, SyntaxNode};
-use expr::expr;
 use rowan::{Checkpoint, GreenNode, GreenNodeBuilder, Language};
 use std::iter::Peekable;
+
+use crate::lexer;
+use logos::Lexer;
 
 pub struct Parser<'a> {
     lexer: Peekable<Lexer<'a>>,
@@ -20,9 +20,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse(mut self) -> Parse {
-        self.start_node(SyntaxKind::Root);
-
-        expr(&mut self);
+        self.start_node(TokenKind::Root);
 
         self.finish_node();
 
@@ -31,13 +29,13 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn start_node(&mut self, kind: SyntaxKind) {
-        self.builder.start_node(EldiroLanguage::kind_to_raw(kind));
+    fn start_node(&mut self, kind: TokenKind) {
+        self.builder.start_node(GlueShellLanguage::kind_to_raw(kind));
     }
 
-    fn start_node_at(&mut self, checkpoint: Checkpoint, kind: SyntaxKind) {
+    fn start_node_at(&mut self, checkpoint: Checkpoint, kind: TokenKind) {
         self.builder
-            .start_node_at(checkpoint, EldiroLanguage::kind_to_raw(kind));
+            .start_node_at(checkpoint, GlueShellLanguage::kind_to_raw(kind));
     }
 
     fn finish_node(&mut self) {
@@ -48,14 +46,14 @@ impl<'a> Parser<'a> {
         let (kind, text) = self.lexer.next().unwrap();
 
         self.builder
-            .token(EldiroLanguage::kind_to_raw(kind), text.into());
+            .token(GlueShellLanguage::kind_to_raw(kind), text.into());
     }
 
     fn checkpoint(&self) -> Checkpoint {
         self.builder.checkpoint()
     }
 
-    fn peek(&mut self) -> Option<SyntaxKind> {
+    fn peek(&mut self) -> Option<TokenKind> {
         self.lexer.peek().map(|(kind, _)| *kind)
     }
 }
