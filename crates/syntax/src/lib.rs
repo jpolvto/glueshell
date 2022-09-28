@@ -1,14 +1,12 @@
-
+use lexer::TokenKind;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
-
-use crate::lexer::{self, TokenKind};
 
 #[derive(Debug, Copy, Clone, PartialEq, FromPrimitive, ToPrimitive)]
 pub enum SyntaxKind {
     Whitespace,
     FnKw,
-    LetKw,
+    VarKw,
     Ident,
     Number,
     Plus,
@@ -36,7 +34,7 @@ impl From<TokenKind> for SyntaxKind {
         match token_kind {
             TokenKind::Whitespace => Self::Whitespace,
             TokenKind::FnKw => Self::FnKw,
-            TokenKind::LetKw => Self::LetKw,
+            TokenKind::VarKw => Self::VarKw,
             TokenKind::Ident => Self::Ident,
             TokenKind::Number => Self::Number,
             TokenKind::Plus => Self::Plus,
@@ -55,8 +53,6 @@ impl From<TokenKind> for SyntaxKind {
 }
 
 pub type SyntaxNode = rowan::SyntaxNode<GlueShellLanguage>;
-pub type SyntaxElement = rowan::SyntaxElement<GlueShellLanguage>;
-pub type SyntaxToken = rowan::SyntaxToken<GlueShellLanguage>;
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum GlueShellLanguage {}

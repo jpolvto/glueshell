@@ -9,8 +9,8 @@ pub enum TokenKind {
     #[token("fn")]
     FnKw,
 
-    #[token("$")]
-    LetKw,
+    #[token("&")]
+    VarKw,
 
     #[regex("[A-Za-z][A-Za-z0-9]*")]
     Ident,
@@ -63,7 +63,7 @@ impl fmt::Display for TokenKind {
         f.write_str(match self {
             Self::Whitespace => "whitespace",
             Self::FnKw => "‘fn’",
-            Self::LetKw => "$",
+            Self::VarKw => "$",
             Self::Ident => "identifier",
             Self::Number => "number",
             Self::Plus => "‘+’",
@@ -83,10 +83,8 @@ impl fmt::Display for TokenKind {
 
 #[cfg(test)]
 mod tests {
-    use logos::Lexer;
-
     use super::*;
-    use crate::lexer;
+    use crate::Lexer;
 
     fn check(input: &str, kind: TokenKind) {
         let mut lexer = Lexer::new(input);
@@ -108,7 +106,7 @@ mod tests {
 
     #[test]
     fn lex_let_keyword() {
-        check("let", TokenKind::LetKw);
+        check("$", TokenKind::VarKw);
     }
 
     #[test]
